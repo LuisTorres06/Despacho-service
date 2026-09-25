@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.despachoreactive.ServiciosExternosClientTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-25T01:21:23.257Z" hostname="mb0b0974443" time="0.049">
+  <properties/>
+  <testcase name="riesgo_timeoutDevuelveScorePorDefecto()" classname="com.example.despachoreactive.ServiciosExternosClientTest" time="0.038"/>
+  <testcase name="tarifa_reintentaErroresTransitoriosYDevuelveRespuesta()" classname="com.example.despachoreactive.ServiciosExternosClientTest" time="0.01"/>
+  <testcase name="tarifa_noReintentaErroresCuatroxxYUsaFallback()" classname="com.example.despachoreactive.ServiciosExternosClientTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

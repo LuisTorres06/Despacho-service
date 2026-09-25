@@ -1,0 +1,15 @@
+services:
+  postgres-despacho:
+    image: postgres:15
+    container_name: postgres-despacho
+    environment:
+      POSTGRES_DB: despachodb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - despacho_pgdata:/var/lib/postgresql/data
+
+volumes:
+  despacho_pgdata:

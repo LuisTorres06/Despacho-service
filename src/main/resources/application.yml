@@ -1,0 +1,25 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/despachodb
+    username: postgres
+    password: ${POSTGRES_PASSWORD:postgres}
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8081
+
+app:
+  external:
+    base-url: http://localhost:8081
+    pricing-timeout: 2s
+    risk-timeout: 800ms
+  reservation-ttl: 15m
+  expiry-interval: 30s
+  risk-threshold: 80
+  default-risk-score: 30
+
+logging:
+  level:
+    com.example.despachoreactive: INFO

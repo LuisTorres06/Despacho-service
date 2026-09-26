@@ -1,37 +1,78 @@
 package com.example.despachoreactive.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class ServiciosExternosClient {
     private final WebClient client;
+    private final Duration pricingTimeout;
+    private final Duration riskTimeout;
+    private final int defaultRiskScore;
+    private final ConcurrentMap<String, Mono<String>> ventanaCache;
 
-    public ServiciosExternosClient(WebClient externalWebClient) {
+    public ServiciosExternosClient(
+            WebClient externalWebClient,
+            @Value("${app.external.pricing-timeout:2s}") Duration pricingTimeout,
+            @Value("${app.external.risk-timeout:800ms}") Duration riskTimeout,
+            @Value("${app.default-risk-score:30}") int defaultRiskScore
+    ) {
         this.client = externalWebClient;
+        this.pricingTimeout = pricingTimeout;
+        this.riskTimeout = riskTimeout;
+        this.defaultRiskScore = defaultRiskScore;
+        this.ventanaCache = new ConcurrentHashMap<>();
     }
 
     public Mono<BigDecimal> tarifa(String ciudad, int peso, BigDecimal fallback) {
-        return client.get().uri(uri -> uri.path("/external/pricing").queryParam("ciudad", ciudad).queryParam("peso", peso).build()).retrieve().bodyToMono(BigDecimal.class)
+        return client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/external/pricing")
+                        .queryParam("ciudad", ciudad)
+                        .queryParam("peso", peso)
+                        .build())
+                .retrieve()
+                .bodyToMono(BigDecimal.class)
+                .timeout(pricingTimeout)
                 .retryWhen(Retry.backoff(3, Duration.ofMillis(200)).filter(this::transitorio))
                 .onErrorReturn(fallback);
     }
 
     public Mono<Integer> riesgo(String ciudad) {
-        return client.get().uri(uri -> uri.path("/external/risk").queryParam("ciudad", ciudad).build()).retrieve().bodyToMono(Integer.class)
-                .timeout(Duration.ofMillis(800)).onErrorReturn(30);
+        return client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/external/risk")
+                        .queryParam("ciudad", ciudad)
+                        .build())
+                .retrieve()
+                .bodyToMono(Integer.class)
+                .timeout(riskTimeout)
+                .onErrorReturn(defaultRiskScore);
     }
 
     public Mono<String> ventana(String ciudad) {
-        return client.get().uri(uri -> uri.path("/external/window").queryParam("ciudad", ciudad).build()).retrieve().bodyToMono(String.class).cache(Duration.ofMinutes(10));
+        return ventanaCache.computeIfAbsent(ciudad, key -> client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/external/window")
+                        .queryParam("ciudad", key)
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .cache(Duration.ofMinutes(10))
+                .doOnError(error -> ventanaCache.remove(key)));
     }
 
     private boolean transitorio(Throwable error) {
-        return !(error instanceof org.springframework.web.reactive.function.client.WebClientResponseException response) || response.getStatusCode().is5xxServerError();
+        return !(error instanceof WebClientResponseException responseException)
+                || responseException.getStatusCode().is5xxServerError();
     }
 }

@@ -10,7 +10,7 @@ public class EventBus {
     private final Sinks.Many<DespachoEvent> eventos = Sinks.many().multicast().directBestEffort();
 
     public void publicar(DespachoEvent evento) {
-        eventos.emitNext(evento, Sinks.EmitFailureHandler.FAIL_FAST);
+        eventos.tryEmitNext(evento);
     }
 
     public Flux<DespachoEvent> eventos() {

@@ -1,6 +1,5 @@
 package com.example.despachoreactive.controller;
 
-import com.example.despachoreactive.config.TraceWebFilter;
 import com.example.despachoreactive.dto.DespachoEvent;
 import com.example.despachoreactive.dto.DespachoRequest;
 import com.example.despachoreactive.dto.DespachoResponse;
@@ -29,10 +28,12 @@ public class DespachoController {
     }
 
     @PostMapping
-    public Mono<ResponseEntity<DespachoResponse>> crear(@Valid @RequestBody DespachoRequest request,
-                                                          @RequestHeader(value = "Idempotency-Key", required = false) String idemKey,
-                                                          @RequestHeader(value = "X-Traza-Id", required = false) String trace) {
-        return service.crear(request, trace, idemKey).map(result -> ResponseEntity.status(201).body(result));
+    public Mono<ResponseEntity<DespachoResponse>> crear(
+            @Valid @RequestBody DespachoRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idemKey
+    ) {
+        return service.crear(request, idemKey)
+                .map(result -> ResponseEntity.status(201).body(result));
     }
 
     @GetMapping("/{id}")
@@ -47,6 +48,9 @@ public class DespachoController {
 
     @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<DespachoEvent> eventos(@PathVariable Long id) {
-        return bus.eventos().filter(event -> event.despachoId().equals(id)).takeUntil(event -> TERMINALES.contains(event.estado())).timeout(Duration.ofMinutes(15));
+        return bus.eventos()
+                .filter(evento -> evento.despachoId().equals(id))
+                .takeUntil(evento -> TERMINALES.contains(evento.estado()))
+                .timeout(Duration.ofMinutes(15));
     }
 }

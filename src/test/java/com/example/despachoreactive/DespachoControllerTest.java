@@ -32,20 +32,23 @@ class DespachoControllerTest {
     }
 
     @Test
-    void crear_devuelve201YPropagaHeaders() {
-        DespachoResponse response = new DespachoResponse(7L, 9L, "BOG", "ASIGNADO", BigDecimal.TEN, BigDecimal.TEN, 20, "trace-1", Instant.now(), Instant.now(), List.of());
-        when(service.crear(any(), eq("trace-1"), eq("key-1"))).thenReturn(Mono.just(response));
+    void crear_devuelve201YPropagaIdempotencyKey() {
+        DespachoResponse response = new DespachoResponse(
+                7L, 9L, "BOG", "ASIGNADO",
+                BigDecimal.TEN, BigDecimal.TEN, 20,
+                "trace-1", Instant.now(), Instant.now(), List.of()
+        );
+        when(service.crear(any(), eq("key-1"))).thenReturn(Mono.just(response));
 
         client.post().uri("/api/despachos")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Traza-Id", "trace-1")
                 .header("Idempotency-Key", "key-1")
                 .bodyValue(new DespachoRequest(9L, "BOG", List.of(new DespachoRequest.PaqueteRequest(1L, 20))))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody().jsonPath("$.id").isEqualTo(7);
 
-        verify(service).crear(any(), eq("trace-1"), eq("key-1"));
+        verify(service).crear(any(), eq("key-1"));
     }
 
     @Test

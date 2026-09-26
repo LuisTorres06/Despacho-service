@@ -35,6 +35,7 @@ public class ExpiracionDespachosJob {
         this(db, bus, Duration.ofSeconds(30), Clock.systemUTC(), Schedulers.parallel());
     }
 
+    // Constructor extra para tests
     public ExpiracionDespachosJob(DatabaseClient db, EventBus bus, Duration intervalo, Clock reloj, Scheduler scheduler) {
         this.db = db;
         this.bus = bus;
@@ -46,9 +47,12 @@ public class ExpiracionDespachosJob {
     @EventListener(ApplicationReadyEvent.class)
     public void iniciar() {
         suscripcion = Flux.interval(intervalo, scheduler)
+                //  evita cola infinita de ticks si se atrasa procesamiento
                 .onBackpressureDrop()
+                //  procesa un tick a la vez
                 .concatMap(tick -> expirar()
                         .doOnError(error -> log.error("Error ejecutando expiracion de despachos", error))
+                        // no tumbar job por error puntual
                         .onErrorResume(error -> Mono.empty()))
                 .subscribe();
     }
@@ -91,6 +95,7 @@ public class ExpiracionDespachosJob {
 
     @PreDestroy
     public void detener() {
+        // Gestión explícita de ciclo de vida de suscripción larga
         if (suscripcion != null) {
             suscripcion.dispose();
         }

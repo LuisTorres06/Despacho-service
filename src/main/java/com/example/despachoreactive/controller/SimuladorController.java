@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RestController
 @RequestMapping("/external")
 public class SimuladorController {
+
     private final AtomicInteger fallasTarifaRestantes = new AtomicInteger(0);
     private final AtomicInteger latenciaRiesgoMs = new AtomicInteger(0);
     private final AtomicInteger scoreRiesgo = new AtomicInteger(30);
@@ -63,6 +64,7 @@ public class SimuladorController {
     public Mono<BigDecimal> pricing(@RequestParam String ciudad, @RequestParam int peso) {
         int restantesAntes = fallasTarifaRestantes.getAndUpdate(v -> Math.max(v - 1, 0));
         if (restantesAntes > 0) {
+            // Simula fallo transitorio 503 para probar retryWhen
             return Mono.error(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Fallo simulado de tarifa"));
         }
         return Mono.just(BigDecimal.valueOf(10000L + (long) peso * 10L));
@@ -70,6 +72,7 @@ public class SimuladorController {
 
     @GetMapping("/risk")
     public Mono<Integer> risk(@RequestParam String ciudad) {
+        // latencia asíncrona no bloqueante
         return Mono.delay(Duration.ofMillis(latenciaRiesgoMs.get()))
                 .thenReturn(scoreRiesgo.get());
     }

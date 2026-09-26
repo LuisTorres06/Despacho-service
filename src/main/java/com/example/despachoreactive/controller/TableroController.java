@@ -19,6 +19,10 @@ public class TableroController {
 
     @GetMapping(value = "/tablero", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<DespachoEvent> tablero() {
-        return bus.eventos().publish().refCount(1).onBackpressureLatest();
+        return bus.eventos()
+                //comparte stream hot, se conecta con primer suscriptor
+                .publish().refCount(1)
+                //backpressure para consumidor lento -> conserva lo más reciente
+                .onBackpressureLatest();
     }
 }

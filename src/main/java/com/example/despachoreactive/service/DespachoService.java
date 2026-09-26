@@ -89,12 +89,15 @@ public class DespachoService {
             String trazaId = context.getOrDefault(TraceWebFilter.KEY, "n/a");
             String normalizedIdemKey = (idemKey == null || idemKey.isBlank()) ? null : idemKey.trim();
 
+            // Si hay idem key y ya existe despacho, lo retorna
             Mono<DespachoResponse> existente = normalizedIdemKey == null
                     ? Mono.empty()
                     : buscarPorClave(normalizedIdemKey);
 
             Mono<DespachoResponse> nuevo = crearNuevo(request, trazaId, normalizedIdemKey);
+
             if (normalizedIdemKey != null) {
+                // Si dos requests compiten por misma idem key, recupera el existente
                 nuevo = nuevo.onErrorResume(
                         DataIntegrityViolationException.class,
                         error -> buscarPorClave(normalizedIdemKey)
@@ -113,7 +116,9 @@ public class DespachoService {
         return insertarRecibido(request, trazaId, idemKey)
                 .flatMap(despachoId ->
                         Flux.fromIterable(request.paquetes())
+                                // concatMap para reserva secuencial y compensación trazable
                                 .concatMap(paquete -> reservar(paquete).doOnNext(ok -> reservados.add(paquete)))
+                                // externos en paralelo
                                 .then(Mono.zip(
                                         externos.tarifa(request.ciudad(), pesoTotal, tarifaFallback),
                                         externos.ventana(request.ciudad()),
@@ -128,11 +133,14 @@ public class DespachoService {
                                     }
 
                                     Instant expiraEn = Instant.now().plus(reservationTtl);
+
+                                    // tx local para persistencia consistente
                                     return tx.transactional(
                                             guardarPaquetes(despachoId, request.paquetes())
                                                     .then(actualizarAsignado(despachoId, tarifa, scoreRiesgo, expiraEn))
                                     );
                                 })
+                                // SAGA: ante fallo, compensa liberando reservas tomadas
                                 .onErrorResume(error ->
                                         compensarError(despachoId, reservados, trazaId, error).then(Mono.error(error))
                                 )
@@ -197,6 +205,7 @@ public class DespachoService {
             Throwable error
     ) {
         Mono<Void> compensacion = liberar(reservados);
+
         if (error instanceof ZonaRiesgosaException) {
             compensacion = compensacion
                     .then(cambiarEstado(despachoId, "RECHAZADO"))

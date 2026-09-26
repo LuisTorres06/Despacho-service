@@ -51,6 +51,7 @@ public class DespachoController {
         return bus.eventos()
                 .filter(evento -> evento.despachoId().equals(id))
                 .takeUntil(evento -> TERMINALES.contains(evento.estado()))
+                // Evita streams eternos sin actividad
                 .timeout(Duration.ofMinutes(15));
     }
 }

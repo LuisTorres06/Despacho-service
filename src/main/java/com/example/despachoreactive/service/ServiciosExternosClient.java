@@ -42,8 +42,11 @@ public class ServiciosExternosClient {
                         .build())
                 .retrieve()
                 .bodyToMono(BigDecimal.class)
+                // timeout para no colgar flujo por dependencia
                 .timeout(pricingTimeout)
+                // retry con backoff SOLO cuando error es transitorio
                 .retryWhen(Retry.backoff(3, Duration.ofMillis(200)).filter(this::transitorio))
+                // fallback controlado si todo falla
                 .onErrorReturn(fallback);
     }
 
@@ -56,10 +59,12 @@ public class ServiciosExternosClient {
                 .retrieve()
                 .bodyToMono(Integer.class)
                 .timeout(riskTimeout)
+                // Fallback de score por defecto
                 .onErrorReturn(defaultRiskScore);
     }
 
     public Mono<String> ventana(String ciudad) {
+        // Cache por ciudad
         return ventanaCache.computeIfAbsent(ciudad, key -> client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/external/window")
@@ -67,11 +72,14 @@ public class ServiciosExternosClient {
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
+                // cache TTL 10 min (cold->hot cacheado por clave)
                 .cache(Duration.ofMinutes(10))
+                // Si falla, limpia cache para no dejar fallo pegado
                 .doOnError(error -> ventanaCache.remove(key)));
     }
 
     private boolean transitorio(Throwable error) {
+        // Reintenta errores de red/5xx; NO 4xx de cliente
         return !(error instanceof WebClientResponseException responseException)
                 || responseException.getStatusCode().is5xxServerError();
     }

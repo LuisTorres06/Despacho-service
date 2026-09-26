@@ -17,7 +17,13 @@ import reactor.util.function.Tuple2;
 import java.util.List;
 import java.util.Map;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
+        properties = {
+                "server.port=18081",
+                "app.external.base-url=http://localhost:18081"
+        }
+)
 @AutoConfigureWebTestClient
 class CupoConcurrenciaTest {
     @Autowired

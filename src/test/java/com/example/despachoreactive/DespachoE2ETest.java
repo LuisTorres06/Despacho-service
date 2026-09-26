@@ -15,7 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
+        properties = {
+                "server.port=18081",
+                "app.external.base-url=http://localhost:18081"
+        }
+)
 @AutoConfigureWebTestClient
 class DespachoE2ETest {
     @Autowired

@@ -4,6 +4,7 @@ import com.example.despachoreactive.dto.DespachoEvent;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.r2dbc.core.DatabaseClient;
@@ -29,6 +30,7 @@ public class ExpiracionDespachosJob {
     private final Scheduler scheduler;
     private Disposable suscripcion;
 
+    @Autowired
     public ExpiracionDespachosJob(DatabaseClient db, EventBus bus) {
         this(db, bus, Duration.ofSeconds(30), Clock.systemUTC(), Schedulers.parallel());
     }

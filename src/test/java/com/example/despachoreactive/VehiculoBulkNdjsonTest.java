@@ -11,7 +11,13 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
+        properties = {
+                "server.port=18081",
+                "app.external.base-url=http://localhost:18081"
+        }
+)
 @AutoConfigureWebTestClient
 class VehiculoBulkNdjsonTest {
     @Autowired
@@ -22,8 +28,7 @@ class VehiculoBulkNdjsonTest {
 
     @BeforeEach
     void setUp() {
-        StepVerifier.create(db.sql("DELETE FROM vehiculo").fetch().rowsUpdated().then())
-                .verifyComplete();
+        StepVerifier.create(resetDb()).verifyComplete();
     }
 
     @Test
@@ -50,5 +55,12 @@ class VehiculoBulkNdjsonTest {
         StepVerifier.create(total)
                 .expectNext(2L)
                 .verifyComplete();
+    }
+
+    private Mono<Void> resetDb() {
+        return db.sql("DELETE FROM paquete").fetch().rowsUpdated()
+                .then(db.sql("DELETE FROM despacho").fetch().rowsUpdated())
+                .then(db.sql("DELETE FROM vehiculo").fetch().rowsUpdated())
+                .then();
     }
 }

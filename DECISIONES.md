@@ -1,0 +1,13 @@
+# DECISIONES
+
+| Decisión | Qué elegimos | Qué descartamos | Por qué |
+|---|---|---|---|
+| D1 · `flatMap` vs `concatMap` en reserva de cupo | `concatMap` para reservar paquete por paquete | `flatMap` sin control de concurrencia | La reserva toca estado compartido (`cupo_kg`, `reservado_kg`) y la compensación requiere orden y trazabilidad de qué ya se reservó. |
+| D2 · Backpressure del tablero SSE | `onBackpressureLatest()` | Buffer ilimitado o replay completo en memoria | El tablero es operativo (estado actual), así que preferimos entregar lo último al consumidor lento y evitar crecimiento de memoria. |
+| D3 · Hot vs cold en eventos operativos | `Sinks.many().multicast().directBestEffort()` + `publish().refCount(1)` | Flujo cold por suscriptor | Necesitamos una sola fuente compartida para todos los clientes SSE, sin duplicar trabajo ni recalcular por cada suscriptor. |
+| D4 · Límite de transacción reactiva | `TransactionalOperator` solo para persistencia consistente (`paquete` + actualización de `despacho` a `ASIGNADO`) y confirmación `ASIGNADO -> EN_RUTA` | Incluir llamadas HTTP externas o toda la reserva dentro de la transacción | Mantener transacciones cortas reduce retención de conexión y evita mezclar latencia externa con atomicidad de base de datos. |
+| D5 · Atomicidad de cupo | `UPDATE vehiculo ... WHERE cupo_kg >= :peso RETURNING` | Leer-modificar-escribir en memoria | El SQL atómico evita cupo negativo bajo concurrencia y simplifica la verificación de éxito/fallo por paquete. |
+| D6 · Compensación (saga) | Liberar reservas exitosas en fallo posterior (`liberar(reservados)`) | Rollback distribuido o ignorar reservas parciales | La reserva ocurre antes de cerrar persistencia final; si algo falla, la compensación mantiene consistencia de cupos. |
+| D7 · Resiliencia externos | Tarifa con `retryWhen(backoff)` + fallback; riesgo con `timeout(800ms)` + score por defecto; ventana con `cache(10 min)` por ciudad | Fallar toda la operación ante cualquier error externo | El despacho debe degradar de forma controlada ante fallos transitorios y latencias externas. |
+| D8 · Trazabilidad transversal | `X-Traza-Id` en `WebFilter` + `Reactor Context` (`contextWrite` / `deferContextual`) | Pasar `trazaId` por parámetros entre capas | Reduce acoplamiento entre capas y permite incluir `trazaId` en errores/eventos sin ensuciar firmas de métodos. |
+| D9 · Idempotencia en creación de despacho | Header `Idempotency-Key` + `despacho.idem_key` único + reutilización de despacho existente | Ignorar duplicados o depender solo del cliente | Evita dobles creaciones ante reintentos/reenvíos y hace seguro repetir `POST /api/despachos`. |

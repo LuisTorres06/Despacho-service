@@ -1,0 +1,6 @@
+
+# Archivos generados/locales
+.gradle/
+build/
+.idea/
+.github/copilot-instructions.md

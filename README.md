@@ -14,7 +14,7 @@ Servicio reactivo para gestionar despachos, reservas de cupo en vehiculos, event
 
 ## Requisitos
 
-- Docker Desktop
+- Docker Desktop -> se usó para levantar PostgreSQL 15 con R2DBC
 - JDK 21
 - Puerto 5432 libre para PostgreSQL
 - Puerto 8081 libre para la app
@@ -168,7 +168,6 @@ Errores de dominio principales:
 
 ## Tabla de evidencia reactiva (elemento -> archivo:linea)
 
-> Nota: si mueves codigo, actualiza lineas antes de sustentar.
 
 | Elemento reactivo | Archivo:linea | Uso |
 |---|---|---|
@@ -222,28 +221,3 @@ Pruebas relevantes del taller:
 - `TraceWebFilterTest`
 
 ---
-
-## Entregables de taller
-
-- Codigo fuente en repositorio.
-- `README.md` con:
-  - como levantar/probar
-  - tabla elemento reactivo -> archivo:linea
-- `DECISIONES.md` (raiz del repo) con decisiones minimas:
-  - `flatMap` vs `concatMap`
-  - backpressure del tablero
-  - hot vs cold
-  - limites de la transaccion reactiva
-
----
-
-## Notas de calidad
-
-En `src/main` no se usa:
-
-- `block()`, `blockFirst()`, `blockLast()`
-- `Thread.sleep`
-- `.toFuture().get()`
-- JDBC imperativo
-
-El flujo se mantiene reactivo de punta a punta con WebFlux + R2DBC.

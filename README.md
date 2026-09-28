@@ -2,7 +2,33 @@
 
 Servicio reactivo para gestionar despachos, reservas de cupo en vehiculos, eventos operativos SSE, reportes por ciudad y carga masiva NDJSON.
 
-## Stack tecnico
+# Nota:
+Para ejecutar el proyecto localmente, se hicieron unos cambios:
+1. En build.gradle, se cambió repositories, esto con el fin de que el proyecto pueda descargar las dependencias desde el repositorio de Bancolombia.
+
+```
+repositories {
+    maven { url "https://artifactory.apps.bancolombia.com:443/maven-bancolombia" }
+}
+```
+
+tambien se agregó a settings.gradle el siguiente bloque de código para que el plugin de Spring Boot pueda descargar las dependencias desde el repositorio de Bancolombia.
+
+```
+pluginManagement {
+    repositories {
+        maven {
+            url "https://artifactory.apps.bancolombia.com/maven-bancolombia"
+        }
+    }
+}
+```
+Para ejecutar el proyecto en una maquina no banco se recomienda cambiar el maven para que apunte a repocentral y el eliminar el bloque de pluginManagement de settings.gradle.
+
+2. Tampoco se utilizó docker para levantar la base de datos, se utilizó directamente la base de datos local postgres 15.
+
+
+## Stack tecnico  
 
 - Java 21
 - Spring Boot 4.1.1
